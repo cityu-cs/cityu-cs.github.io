@@ -1,29 +1,16 @@
-# cityu-cs
+# cityu-cs.github.io
 
-This template should help get you started developing with Vue 3 in Vite.
+A website to help students from [City University of Hong Kong](https://www.cityu.edu.hk/) to schedule their courses easily.
 
-## Recommended IDE Setup
+## How to use
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur) + [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin).
+This website is hosted at [https://cityu-cs.github.io/](https://cityu-cs.github.io/).
 
-## Customize configuration
+## Project Timeline
 
-See [Vite Configuration Reference](https://vitejs.dev/config/).
-
-## Project Setup
-
-```sh
-npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
-npm run dev
-```
-
-### Compile and Minify for Production
-
-```sh
-npm run build
-```
+- [x] Fetch course data from [AIMS](https://banweb.cityu.edu.hk/) Master Class Schedule
+  - Real time data including available seats are not available. Please always refer to AIMS for the latest information.
+- [ ] Static pages for course information
+- [ ] Timetable display
+- [ ] Course search
+- [ ] Minimum Viable Product (MVP) release
