@@ -1,5 +1,5 @@
 <script setup>
-import CourseTable from "@/components/CourseTable.vue";
+import CourseList from "@/components/CourseList.vue";
 </script>
 
 <template>
@@ -7,12 +7,12 @@ import CourseTable from "@/components/CourseTable.vue";
         <div>
             <h1>CityU Schedule Helper</h1>
             <p>
-                For Semester A, 2023/24
+                SEMESTER A, 2023/24
             </p>
         </div>
     </header>
     <main>
-        <CourseTable />
+        <CourseList />
     </main>
 </template>
 
