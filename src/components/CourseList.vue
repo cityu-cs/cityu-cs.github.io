@@ -25,13 +25,11 @@ const levelList = ref([
     {value: 'R', label: 'Research Degree'}
 ]);
 
-// 当没有搜索条件时，显示全部课程
-
 const queryText = ref('');
 const querySubject = ref('');
 const queryLevel = ref('');
-// const resultList = ref(fullList.value);
 const resultList = ref([]);
+const currentList = ref([]);
 
 async function search() {
     const query = queryText.value.toLowerCase();
@@ -40,6 +38,8 @@ async function search() {
 
     if (!query && !subject && !level) {
         resultList.value = fullList.value;
+        total.value = resultList.value.length;
+        updateCurrentList();
         return;
     }
 
@@ -55,51 +55,113 @@ async function search() {
         }
         return true;
     });
+
+    total.value = resultList.value.length;
+    updateCurrentList();
 }
+
+const pagesize = ref(10);
+const currentPage = ref(1);
+const total = ref(0);
+function handleSizeChange(val) {
+    pagesize.value = val;
+    currentPage.value = 1;
+    updateCurrentList();
+}
+function handleCurPageChange(val) {
+    currentPage.value = val;
+    updateCurrentList();
+}
+
+function updateCurrentList() {
+    const start = (currentPage.value - 1) * pagesize.value;
+    const end = start + pagesize.value;
+    currentList.value = resultList.value.slice(start, end);
+}
+
+search();
 </script>
 
 <template>
-    <div class="Search">
-        <el-input placeholder="Course Code or Title" v-model="queryText" clearable></el-input>
-        <el-select v-model="querySubject" placeholder="Subject" clearable>
-            <el-option
-                    v-for="item in subjectList"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value">
-            </el-option>
+    <div class="search-container">
+        <!-- 当用户在文本框中输入时，按下回车键时触发搜索 -->
+        <el-input class="search-input" placeholder="Course Code or Title" v-model="queryText" clearable
+            @keyup.enter.native="search"></el-input>
+        <el-select class="search-select" v-model="querySubject" placeholder="Subject" clearable>
+            <el-option v-for="item in subjectList" :key="item.value" :label="item.label" :value="item.value"></el-option>
         </el-select>
-        <el-select v-model="queryLevel" placeholder="Level" clearable>
-            <el-option
-                    v-for="item in levelList"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value">
-            </el-option>
+        <el-select class="search-select" v-model="queryLevel" placeholder="Level" clearable>
+            <el-option v-for="item in levelList" :key="item.value" :label="item.label" :value="item.value"></el-option>
         </el-select>
-        <el-button type="primary" @click="search">Search</el-button>
+        <el-button class="search-button" type="primary" @click="search">Search</el-button>
     </div>
 
-    <div class="Table">
-        <el-table :data="resultList" border stripe>
-            <el-table-column prop="courseCode" label="Course Code" width="220px"></el-table-column>
-            <el-table-column prop="courseTitle" label="Course Title" width="660px"></el-table-column>
-            <el-table-column prop="creditUnits" label="Credit Units" width="110px"></el-table-column>
-            <el-table-column prop="webEnabled" label="Web Enabled" width="110px"></el-table-column>
-            <el-table-column prop="details" label="Details">
+    <div class="table-container">
+        <el-table :data="currentList" border stripe>
+            <el-table-column class="table-medium" prop="courseCode" label="Course Code" min-width="2"></el-table-column>
+            <el-table-column class="table-long" prop="courseTitle" label="Course Title" min-width="4"></el-table-column>
+            <el-table-column class="table-short" prop="creditUnits" label="Credit Units" min-width="1"></el-table-column>
+            <el-table-column class="table-short" prop="webEnabled" label="Web Enabled" min-width="1"></el-table-column>
+            <el-table-column class="table-medium" prop="details" label="Details" min-width="2">
                 <template #default="{row}">
                     <el-button type="text" @click="window.open(row.details, '_blank')">Details</el-button>
                 </template>
             </el-table-column>
         </el-table>
+        <div class="pagination-container">
+            <el-pagination
+                @size-change="handleSizeChange"
+                @current-change="handleCurPageChange"
+                :current-page="currentPage"
+                :page-sizes="[10, 20, 50, 100]"
+                :page-size="pagesize"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="total">
+            </el-pagination>
+        </div>
     </div>
 </template>
 
 <style scoped>
-.Search {
+.search-container {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.search-input {
+    width: 40%;
+}
+
+.search-select {
+    width: 20%;
+}
+
+.search-button {
+    width: 20%;
+}
+
+.table-container {
+    width: 100%;
+}
+
+.table-medium {
+    min-width: 20%;
+}
+
+.table-long {
+    min-width: 40%;
+}
+
+.table-short {
+    min-width: 10%;
+}
+
+.pagination-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
 }
 </style>
