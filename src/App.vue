@@ -1,5 +1,6 @@
 <script setup>
 import CourseList from "@/components/CourseList.vue";
+import Timetable from "@/components/Timetable.vue";
 </script>
 
 <template>
@@ -13,6 +14,7 @@ import CourseList from "@/components/CourseList.vue";
     </header>
     <main>
         <CourseList />
+        <Timetable />
     </main>
 </template>
 
