@@ -1,21 +1,27 @@
 <script setup>
 import { ref } from 'vue';
-import courses from '@/assets/courses.json';
+// import courses from '@/assets/courses.json';
+import courses from '@/assets/newCourseList.json';
 
-const fullList = ref([]);
-for (const subject in courses) {
-    for (const course of courses[subject]) {
-        fullList.value.push(course);
-    }
-}
+const fullList = ref(courses.course);
+// for (const subject in courses) {
+//     for (const course of courses[subject]) {
+//         fullList.value.push(course);
+//     }
+// }
 
-const subjectList = ref([]);
-for (const subject in courses) {
-    subjectList.value.push({
+const subjectList = ref(courses.subject.map(subject => {
+    return {
         value: subject,
         label: subject
-    });
-}
+    };
+}));
+// for (const subject in courses) {
+//     subjectList.value.push({
+//         value: subject,
+//         label: subject
+//     });
+// }
 
 const levelList = ref([
     {value: 'A', label: 'Associate Degree'},

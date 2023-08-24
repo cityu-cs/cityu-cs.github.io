@@ -28,7 +28,7 @@ const number2char = {
 };
 
 import { ref, onMounted, watch } from 'vue';
-import courseDetail from '@/assets/courseDetail.json';
+import courseDetail from '@/assets/newCourseDetail.json';
 
 const rawDetail = ref([]);
 const timetableList = ref([]);
@@ -72,8 +72,6 @@ function tableCellStyle (row) {
     }
 }
 
-// 测试
-updateTimetableList("MA2185");
 </script>
 
 <template>
