@@ -103,7 +103,9 @@ function getDetail(courseCode) {
         });
         restrictions.value[tab] = courseDetail[courseCode].category[tab];
         if (restrictions.value[tab] === undefined) {
-            restrictions.value[tab] = [['None']];
+            restrictions.value[tab] = ['None'];
+        } else {
+            restrictions.value[tab] = restrictions.value[tab][0];
         }
     }
     for (let tab of tabs.value) {
@@ -124,7 +126,7 @@ function handleCatalogClick(courseCode) {
     window.open(`http://www.cityu.edu.hk/catalogue/ug/current/course/${courseCode}.htm`, '_blank');
 }
 
-getDetail("CS1302");
+// getDetail("CS1302");
 </script>
 
 <template>
@@ -179,7 +181,7 @@ getDetail("CS1302");
             </el-tabs>
             <p>Restrictions:</p>
             <ul>
-                <li v-for="item in restrictions[activeTab][0]" :key="item">{{item}}</li>
+                <li v-for="item in restrictions[activeTab]" :key="item">{{item}}</li>
             </ul>
             <div class="table-container">
                 <el-table :data="tableItems[activeTab]" border stripe>
