@@ -94,7 +94,6 @@ const tabs = ref([]);
 const restrictions = ref({});
 const activeTab = ref('');
 function getDetail(courseCode) {
-    // 取出 courseDetail[courseCode].category 的键值
     // category 是一个 Object[]，所以用 map 取出第一个键值
     tabs.value = courseDetail[courseCode].category.map(obj => Object.keys(obj)[0]);
     activeTab.value = tabs.value[0];
@@ -103,9 +102,7 @@ function getDetail(courseCode) {
             return activity.category === tab && activity.day !== 'X';
         });
         restrictions.value[tab] = courseDetail[courseCode].category[tab];
-        if (restrictions.value[tab] === undefined) {
-            restrictions.value[tab] = ['None'];
-        } else {
+        if (restrictions.value[tab] !== undefined) {
             restrictions.value[tab] = restrictions.value[tab][0];
         }
     }
@@ -114,10 +111,11 @@ function getDetail(courseCode) {
             activity.dayTime = char2Day[activity.day] + ' ' + activity.startTime + '-' + activity.endTime;
             activity.buildingRoom = activity.bldg + ' ' + activity.room;
             activity.webEnabled = activity.web ? 'Y' : 'N';
+            activity.startHour = parseInt(activity.startTime.split(':')[0]);
+            activity.endHour = parseInt(activity.endTime.split(':')[0]);
             activity.courseCode = courseCode;
         }
     }
-    // console.log(tableItems.value);
 }
 
 function handleTabClick(tab, event) {
@@ -126,6 +124,27 @@ function handleTabClick(tab, event) {
 
 function handleCatalogClick(courseCode) {
     window.open(`http://www.cityu.edu.hk/catalogue/ug/current/course/${courseCode}.htm`, '_blank');
+}
+
+function getSectionStatus(row) {
+    const day = row.day;
+    const startHour = row.startHour;
+    const endHour = row.endHour;
+    for (let act of timetableList.value) {
+        if (act.crn === row.crn) {
+            row.status = 'Added';
+            break;
+        }
+        if (act.courseCode === row.courseCode && act.category !== row.category) {
+            row.status = 'Incompatible';
+            break;
+        }
+        if (act.day === day && (act.startHour < endHour && act.endHour > startHour)) {
+            row.status = 'Clash';
+            break;
+        }
+    }
+    return (row.status === undefined) ? (row.status = 'OK') : row.status;
 }
 
 /* PART 3: 课程表 */
@@ -155,9 +174,9 @@ function resetTimetable() {
 }
 
 function addToTimetable(row) {
-    row.startHour = parseInt(row.startTime.split(':')[0]);
-    row.endHour = parseInt(row.endTime.split(':')[0]);
+    // console.log(row);
     timetableList.value.push(row);
+    row.status = 'Added';
     saveLocalStorage();
 }
 
@@ -193,7 +212,6 @@ function tableCellStyle ({row, column, rowIndex, columnIndex}) {
 }
 
 function deleteFromTimetable(row, column, cell, event) {
-    // console.log(cell);
     if (column.minWidth === 4) {
         for (let i = 0; i < timetableList.value.length; i++) {
             if (timetableList.value[i].day === column.rawColumnKey && timetableList.value[i].startHour === row) {
@@ -208,12 +226,30 @@ function deleteFromTimetable(row, column, cell, event) {
     }
 }
 
+function deleteFromDetail(row) {
+    if (!confirm(`Delete ${row.courseCode} - ${row.section}?`)) {
+        return;
+    }
+    for (let i = 0; i < timetableList.value.length; i++) {
+        if (timetableList.value[i].crn === row.crn) {
+            timetableList.value.splice(i, 1);
+            saveLocalStorage();
+            break;
+        }
+    }
+    row.status = 'OK';
+}
+
 /* PART 4: 初始化 */
 search();
 loadLocalStorage();
+
 </script>
 
 <template>
+
+    <!-- 课程列表 -->
+
     <div class="search-container">
         <!-- 当用户在文本框中输入时，按下回车键时触发搜索 -->
         <el-input class="search-input" placeholder="Course Code or Title" v-model="queryText" clearable
@@ -240,10 +276,10 @@ loadLocalStorage();
             <el-table-column class="table-long" prop="courseTitle" label="Course Title" min-width="4"></el-table-column>
             <el-table-column class="table-short" prop="creditUnits" label="Credit Units" min-width="1"></el-table-column>
             <el-table-column class="table-short" prop="webEnabled" label="Web Enabled" min-width="1"></el-table-column>
-            <el-table-column class="table-medium" prop="details" label="Details" min-width="2">
+            <el-table-column class="table-medium" prop="action" label="Action" min-width="2">
                 <template #default="{row}">
                     <el-button type="text" @click="handleCatalogClick(row.courseCode)">Catalog</el-button>
-                    <el-button type="text" @click="getDetail(row.courseCode)">Details</el-button>
+                    <el-button type="text" @click="getDetail(row.courseCode)">Sections</el-button>
                 </template>
             </el-table-column>
         </el-table>
@@ -260,11 +296,8 @@ loadLocalStorage();
         </div>
     </div>
 
-    <!--
-    展示某门课的详细信息
-    上方显示 tabs，分类为所有的 Category
-    下方表格显示每个 Section 的信息，包括 CRN, Section, Day / Time, Building / Room, 和加入到 Timetable 的按钮
-    -->
+    <!-- 课程详情 -->
+
     <div>
         <div class="tab-container">
             <div class="flex-container">
@@ -274,12 +307,18 @@ loadLocalStorage();
                 </el-tabs>
                 </div>
                 <div class="flex-item-right">
-                    <el-button type="primary" @click="resetTimetable">Reset Timetable</el-button>
+                    <el-button type="danger" @click="resetTimetable">Reset Timetable</el-button>
                 </div>
             </div>
-            <p>Restrictions:</p>
+            <p v-if="restrictions[activeTab] !== undefined">Restriction:</p>
             <ul>
                 <li v-for="item in restrictions[activeTab]" :key="item">{{item}}</li>
+            </ul>
+            <p>Instruction:</p>
+            <ul>
+                <li>Use the tab above to navigate between categories. You can only choose sections from the same category.</li>
+                <li>Click on a section in the section table to add or remove it from the timetable.</li>
+                <li>Click on a section in the timetable to remove it.</li>
             </ul>
             <div class="table-container">
                 <el-table
@@ -297,12 +336,14 @@ loadLocalStorage();
                     <el-table-column class="table-short" prop="webEnabled" label="Web" min-width="1"></el-table-column>
                     <el-table-column clash="table-short" prop="status" label="Status" min-width="1">
                         <template #default="{row}">
-                            <p>OK</p> <!-- TODO: 判断是否存在冲突 -->
+                            <p>{{row.status? row.status : getSectionStatus(row)}}</p>
                         </template>
                     </el-table-column>
-                    <el-table-column class="table-medium" prop="add" label="Add" min-width="2">
+                    <el-table-column class="table-medium" prop="add" label="Action" min-width="2">
                         <template #default="{row}">
-                            <el-button type="text" @click="addToTimetable(row)">Add</el-button>
+                            <el-button type="text" @click="addToTimetable(row)" v-if="row.status === 'OK'">Add</el-button>
+                            <el-button type="text" v-else-if="row.status === 'Added'" @click="deleteFromDetail(row)">Remove</el-button>
+                            <el-button type="text" disabled v-else>{{row.status}}</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
@@ -310,6 +351,7 @@ loadLocalStorage();
         </div>
     </div>
 
+    <!-- 课程表 -->
 
     <div class="timetable-container">
         <el-table
@@ -337,6 +379,7 @@ loadLocalStorage();
             </el-table-column>
         </el-table>
     </div>
+
 </template>
 
 <style scoped>
