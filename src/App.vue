@@ -14,7 +14,6 @@ import Timetable from "@/components/Timetable.vue";
     </header>
     <main>
         <CourseList />
-        <Timetable />
     </main>
 </template>
 
