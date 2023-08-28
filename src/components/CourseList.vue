@@ -190,6 +190,11 @@ function handleCatalogClick(courseCode) {
                     <el-table-column class="table-medium" prop="dayTime" label="Time" min-width="2"></el-table-column>
                     <el-table-column class="table-medium" prop="buildingRoom" label="Venue" min-width="2"></el-table-column>
                     <el-table-column class="table-short" prop="webEnabled" label="Web" min-width="1"></el-table-column>
+                    <el-table-column clash="table-short" prop="status" label="Status" min-width="1">
+                        <template #default="{row}">
+                            <p>OK</p> <!-- TODO: 判断是否存在冲突 -->
+                        </template>
+                    </el-table-column>
                     <el-table-column class="table-medium" prop="add" label="Add" min-width="2">
                         <template #default="{row}">
                             <el-button type="text" @click="addToTimetable(row)">Add</el-button>
