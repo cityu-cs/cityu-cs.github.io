@@ -1,7 +1,9 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import courses from '@/assets/newCourseList.json';
 import courseDetail from '@/assets/newCourseDetail.json';
+
+const DEBUG = true;
 
 /* PART 1: 课程列表 */
 
@@ -93,6 +95,9 @@ const tableItems = ref({});
 const tabs = ref([]);
 const restrictions = ref({});
 const activeTab = ref('');
+const sectionStatus = ref({});
+const updateKey = ref(0);
+
 function getDetail(courseCode) {
     // category 是一个 Object[]，所以用 map 取出第一个键值
     tabs.value = courseDetail[courseCode].category.map(obj => Object.keys(obj)[0]);
@@ -116,35 +121,42 @@ function getDetail(courseCode) {
             activity.courseCode = courseCode;
         }
     }
+    getAllStatus();
 }
 
 function handleTabClick(tab, event) {
     activeTab.value = tab.props.name;
+    getAllStatus();
 }
 
 function handleCatalogClick(courseCode) {
     window.open(`http://www.cityu.edu.hk/catalogue/ug/current/course/${courseCode}.htm`, '_blank');
 }
 
-function getSectionStatus(row) {
-    const day = row.day;
-    const startHour = row.startHour;
-    const endHour = row.endHour;
-    for (let act of timetableList.value) {
-        if (act.crn === row.crn) {
-            row.status = 'Added';
-            break;
+function getAllStatus() {
+    if (activeTab.value === '') {
+        return;
+    }
+    for (let act of tableItems.value[activeTab.value]) {
+        for (let added of timetableList.value) {
+            if (added.crn === act.crn) {
+                sectionStatus.value[act.crn] = 'Added';
+                break;
+            }
+            if (added.courseCode === act.courseCode && added.category !== act.category) {
+                sectionStatus.value[act.crn] = 'Incompatible';
+                break;
+            }
+            if (added.day === act.day && added.endHour >= act.startHour && added.startHour <= act.endHour) {
+                sectionStatus.value[act.crn] = 'Clash';
+                break;
+            }
         }
-        if (act.courseCode === row.courseCode && act.category !== row.category) {
-            row.status = 'Incompatible';
-            break;
-        }
-        if (act.day === day && (act.startHour < endHour && act.endHour > startHour)) {
-            row.status = 'Clash';
-            break;
+        if (sectionStatus.value[act.crn] === undefined) {
+            sectionStatus.value[act.crn] = 'OK';
         }
     }
-    return (row.status === undefined) ? (row.status = 'OK') : row.status;
+    updateKey.value += 1;
 }
 
 /* PART 3: 课程表 */
@@ -174,9 +186,8 @@ function resetTimetable() {
 }
 
 function addToTimetable(row) {
-    // console.log(row);
     timetableList.value.push(row);
-    row.status = 'Added';
+    getAllStatus();
     saveLocalStorage();
 }
 
@@ -185,6 +196,9 @@ function mergeTimetable({row, column, rowIndex, columnIndex}) {
         return {rowspan: 1, colspan: 1};
     }
     for (let act of timetableList.value) {
+        /* FIXME: 合并单元格存在 bug。比如，新建周三 9-11 点的课程时，周四 10-10 点的课程会因为周三 10-10 点这一单元格被占用
+                  而向右移动到周五 10-10 点。
+         */
         if (act.day === dayKeys[columnIndex - 1] && act.startHour === row) {
             return {rowspan: act.endHour - act.startHour + 1, colspan: 1};
         }
@@ -194,7 +208,7 @@ function mergeTimetable({row, column, rowIndex, columnIndex}) {
 
 // https://stackoverflow.com/questions/10014271/generate-random-color-distinguishable-to-humans
 function selectColor(number) {
-    const hue = number * 137.508;
+    let hue = number * 137.508; // use golden angle approximation
     return `hsl(${hue},50%,60%)`;
 }
 
@@ -224,6 +238,7 @@ function deleteFromTimetable(row, column, cell, event) {
             }
         }
     }
+    getAllStatus();
 }
 
 function deleteFromDetail(row) {
@@ -237,7 +252,7 @@ function deleteFromDetail(row) {
             break;
         }
     }
-    row.status = 'OK';
+    getAllStatus();
 }
 
 /* PART 4: 初始化 */
@@ -328,6 +343,7 @@ loadLocalStorage();
                         :header-cell-style="{background:'#d9e5fd', color:'black', fontWeight: 1000}"
                         :row-style="{height: '0'}"
                         :cell-style="{padding: '0'}"
+                        :key="updateKey"
                 >
                     <el-table-column class="table-short" prop="crn" label="CRN" min-width="1"></el-table-column>
                     <el-table-column class="table-short" prop="section" label="Section" min-width="1"></el-table-column>
@@ -336,14 +352,14 @@ loadLocalStorage();
                     <el-table-column class="table-short" prop="webEnabled" label="Web" min-width="1"></el-table-column>
                     <el-table-column clash="table-short" prop="status" label="Status" min-width="1">
                         <template #default="{row}">
-                            <p>{{row.status? row.status : getSectionStatus(row)}}</p>
+                            <p>{{sectionStatus[row.crn]}}</p>
                         </template>
                     </el-table-column>
                     <el-table-column class="table-medium" prop="add" label="Action" min-width="2">
                         <template #default="{row}">
-                            <el-button type="text" @click="addToTimetable(row)" v-if="row.status === 'OK'">Add</el-button>
-                            <el-button type="text" v-else-if="row.status === 'Added'" @click="deleteFromDetail(row)">Remove</el-button>
-                            <el-button type="text" disabled v-else>{{row.status}}</el-button>
+                            <el-button type="text" @click="addToTimetable(row)" v-if="sectionStatus[row.crn] === 'OK'">Add</el-button>
+                            <el-button type="text" v-else-if="sectionStatus[row.crn] === 'Added'" @click="deleteFromDetail(row)">Remove</el-button>
+                            <el-button type="text" disabled v-else>{{sectionStatus[row.crn]}}</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
