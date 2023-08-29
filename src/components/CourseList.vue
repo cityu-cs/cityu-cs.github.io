@@ -196,14 +196,22 @@ function mergeTimetable({row, column, rowIndex, columnIndex}) {
         return {rowspan: 1, colspan: 1};
     }
     for (let act of timetableList.value) {
-        /* FIXME: 合并单元格存在 bug。比如，新建周三 9-11 点的课程时，周四 10-10 点的课程会因为周三 10-10 点这一单元格被占用
-                  而向右移动到周五 10-10 点。
+        /* FIXME: 合并单元格存在 bug。例如，新建周三 9-11 点的课程时，周四 10-10 点的课程会因为周三 10-10 点这一单元
+            格被占用而向右移动到周五 10-10 点。
+            解决方案：将被占用的单元格设置为不可见（周三 10-10 点的单元格完全不显示，而不是占用周四 10-10 点的单元格）
          */
         if (act.day === dayKeys[columnIndex - 1] && act.startHour === row) {
             return {rowspan: act.endHour - act.startHour + 1, colspan: 1};
         }
+        if (act.day === dayKeys[columnIndex - 1] && row > act.startHour && row <= act.endHour) {
+            return {rowspan: 0, colspan: 0};
+        }
     }
     return {rowspan: 1, colspan: 1};
+}
+
+function extractNumber(str) {
+    return parseInt(str.replace(/[^0-9]/ig,""));
 }
 
 // https://stackoverflow.com/questions/10014271/generate-random-color-distinguishable-to-humans
@@ -218,7 +226,7 @@ function tableCellStyle ({row, column, rowIndex, columnIndex}) {
     }
     for (let act of timetableList.value) {
         if (act.day === dayKeys[columnIndex - 1] && act.startHour === row) {
-            return {'background-color': selectColor(parseInt(act.courseCode.slice(2, 5))),
+            return {'background-color': selectColor(extractNumber(act.courseCode)),
                 'color': '#fff', 'border-radius': '5px', 'padding': '0'};
         } // 不同 courseCode 对应不同颜色
     }
